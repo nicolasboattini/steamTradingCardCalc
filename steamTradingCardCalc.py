@@ -7,7 +7,7 @@ import requests
 from prettytable import PrettyTable
 
 # ID de la etiqueta de la aplicación de Steam del juego en cuestión
-tag_app = "1361320"
+tag_app = "728880"
 appid = tag_app
 
 # ID de la moneda y prefijo para la representación de precios
@@ -15,15 +15,14 @@ currency_id = "34"  # ARS
 currency_prefix = "ARS$"
 
 # Obtener el nombre del juego con la ID de la aplicación de Steam
-url = f"https://store.steampowered.com/api/appdetails?appids={appid}"
+url = f"https://store.steampowered.com/api/appdetails?appids={appid}&cc=ar"
 response = requests.get(url)
 if response.status_code == 200:
     data = response.json().get(str(appid))
     if data.get("success"):
-        gamename = data.get("data").get("name")
-        print(gamename)
-        precio = float((data.get("data").get("price_overview").get("final_formatted")).replace(f"{currency_prefix} ", "").replace(",", "."))        
-        print(precio)
+        gamename = data.get("data").get("name")        
+        precio = float((data.get("data").get("price_overview").get("final_formatted")).replace(f"{currency_prefix} ", "").replace(".", "").replace(",", "."))        
+        
 
 # Obtener los nombres y market_hash_name de los cromos
 response = requests.get(f"https://steamcommunity.com/market/search/render/?query=trading+card&start=0&count=100&norender=1&appid=753&category_753_Game%5B%5D=tag_app_{tag_app}")
@@ -68,7 +67,7 @@ def print_table(article_data):
     for name, data in sorted(article_data.items(), key=lambda x: (x[1]["max_price"], x[1]["avg_price"])):
         table.add_row([name, f"{data['min_price']} {currency_prefix}", f"{data['avg_price']} {currency_prefix}",
                        f"{data['max_price']} {currency_prefix}", data['volume'], data['stock']])
-    print(f"                     JUEGO: {gamename} Cromos Obtenibles: {round(obtenibles)}                        ")             
+    print(f"         JUEGO: {gamename} Precio: {currency_prefix}{precio} Cromos Obtenibles: {round(obtenibles)}                         ")             
     print(table)
 print_table(article_data)
 print("¡El archivo se ejecutó correctamente!")
