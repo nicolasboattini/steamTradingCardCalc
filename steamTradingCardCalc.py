@@ -7,7 +7,7 @@ import requests
 from prettytable import PrettyTable
 
 # ID de la etiqueta de la aplicación de Steam del juego en cuestión
-tag_app = "728880"
+tag_app = input("Ingrese APPID: ")
 appid = tag_app
 
 # ID de la moneda y prefijo para la representación de precios
@@ -25,6 +25,7 @@ if response.status_code == 200:
         
 
 # Obtener los nombres y market_hash_name de los cromos
+
 response = requests.get(f"https://steamcommunity.com/market/search/render/?query=trading+card&start=0&count=100&norender=1&appid=753&category_753_Game%5B%5D=tag_app_{tag_app}")
 
 if response.status_code == 200:
@@ -42,23 +43,42 @@ else:
 
 article_data = {}
 # Obtener los datos de cada cromo
-for hash_name, sell_listings in items:
+print(f"         JUEGO: {gamename} Precio: {currency_prefix}{precio} Cromos Obtenibles: {round(obtenibles)}                         ") 
+for hash_name, sell_listings in items:    
     response = requests.get("https://steamcommunity.com/market/priceoverview/",
                             params={"appid": 753,
-                                    "currency": currency_id,
+                                    "currency": 34,
                                     "market_hash_name": hash_name})
-    data = response.json()    
-    if data:
+    data = response.json()        
+    if data.get("success"):
         # Extraer los precios y la cantidad disponible para cada cromo
         min_price = float(data["lowest_price"].replace(f"{currency_prefix} ", "").replace(",", "."))
-        avg_price = float(data["median_price"].replace(f"{currency_prefix} ", "").replace(",", "."))
-        max_price = min_price * int(data["volume"])   
-        volume = int(data["volume"])
+        
+        """
+        Corrobora que existan los campos "volume" y "median_price" en la respuesta
+        En caso de no existir, volume = 1 ; max_price = min_price ; avg_price = min_price
+        """
+        if data.get("volume"):
+            max_price = min_price * int(data["volume"]) 
+            volume = int(data["volume"])        
+        else:
+            volume = 0 #No se vendió este articulo en las ultimas 24hs
+            max_price = min_price
+        if data.get("median_price"):
+            avg_price = float(data["median_price"].replace(f"{currency_prefix} ", "").replace(",", "."))  
+        else:
+            avg_price = min_price
+
         stock = sell_listings     
         article_data[hash_name] = {"min_price": min_price, "avg_price": avg_price, "max_price": max_price, "volume": volume, "stock": stock}
     else:
         print("fail")
 
+"""
+Se requiere función para ordenar article_data donde:
+(Trading Card) se muestre primero, y por precio mínimo a máximo
+Luego (Foil Trading Card), de minimo a máximo
+"""
 # Imprimir los datos de los artículos ordenados por cantidad y precio promedio
 def print_table(article_data):
     table = PrettyTable()
@@ -67,7 +87,7 @@ def print_table(article_data):
     for name, data in sorted(article_data.items(), key=lambda x: (x[1]["max_price"], x[1]["avg_price"])):
         table.add_row([name, f"{data['min_price']} {currency_prefix}", f"{data['avg_price']} {currency_prefix}",
                        f"{data['max_price']} {currency_prefix}", data['volume'], data['stock']])
-    print(f"         JUEGO: {gamename} Precio: {currency_prefix}{precio} Cromos Obtenibles: {round(obtenibles)}                         ")             
+                
     print(table)
 print_table(article_data)
 print("¡El archivo se ejecutó correctamente!")
